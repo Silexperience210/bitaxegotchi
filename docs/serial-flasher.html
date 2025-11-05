@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BitaxeGotchi — Serial Flasher (Web Serial)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; margin:24px; color:#111 }
+    h1 { font-size:1.4rem }
+    label { display:block; margin-top:12px }
+    input[type="file"] { display:block; margin-top:6px }
+    button { margin-top:12px; padding:8px 12px }
+    pre { background:#f6f6f8; padding:12px; border-radius:6px; overflow:auto }
+    .warn { color:#7a2a00; background:#fff6f4; padding:8px; border-radius:6px; margin-top:12px }
+  </style>
+</head>
+<body>
+  <h1>BitaxeGotchi — Web Serial Flasher</h1>
+
+  <p>Permet d'envoyer un fichier .bin au périphérique via l'API Web Serial. Le périphérique DOIT être en mode bootloader / récepteur binaire qui accepte un flux brut. Pour flasher un ESP32/ESP8266 en bootloader natif, utilisez esp-web-flasher ou esptool.py (plus fiable et complet).</p>
+
+  <label>Choisir le fichier .bin
+    <input id="fileInput" type="file" accept=".bin">
+  </label>
+
+  <button id="connectBtn">Se connecter au port série</button>
+  <button id="sendBtn" disabled>Envoyer le binaire</button>
+
+  <div id="log" style="margin-top:12px; white-space:pre-wrap;"></div>
+
+  <div class="warn">
+    ATTENTION : cette page n'implémente PAS le protocole de bootloader esptool. N'utilisez que sur matériel/bootloader conçu pour accepter réception binaire brut depuis UART.
+  </div>
+
+  <script>
+    const connectBtn = document.getElementById('connectBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const fileInput = document.getElementById('fileInput');
+    const log = document.getElementById('log');
+
+    let port = null;
+
+    function appendLog(...args) {
+      log.textContent += args.join(' ') + "\n";
+      log.scrollTop = log.scrollHeight;
+    }
+
+    connectBtn.addEventListener('click', async () => {
+      try {
+        // Demande d'ouverture de port
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        appendLog('Port série ouvert:', JSON.stringify(await port.getInfo()));
+        sendBtn.disabled = false;
+      } catch (err) {
+        appendLog('Erreur ouverture port:', err);
+      }
+    });
+
+    sendBtn.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      if (!file) { appendLog('Choisissez un fichier .bin'); return; }
+      if (!port) { appendLog('Connectez d\'abord le port série'); return; }
+
+      appendLog('Lecture du fichier en cours...');
+      const arrayBuffer = await file.arrayBuffer();
+      const total = arrayBuffer.byteLength;
+      appendLog('Taille:', total, 'octets');
+
+      // On envoie en paquets pour ne pas saturer le buffer
+      const CHUNK = 4096;
+      let offset = 0;
+      const view = new Uint8Array(arrayBuffer);
+
+      appendLog('Début de l'envoi (paquets de', CHUNK, 'octets)');
+      const start = performance.now();
+      try {
+        while (offset < total) {
+          const end = Math.min(offset + CHUNK, total);
+          const chunk = view.slice(offset, end);
+          try {
+            const writer = port.writable.getWriter();
+            await writer.write(chunk);
+            writer.releaseLock();
+          } catch (e) {
+            appendLog('Erreur en écriture brut:', e);
+            break;
+          }
+
+          offset = end;
+          appendLog('Envoyé', offset, '/', total);
+          await new Promise(r => setTimeout(r, 5));
+        }
+        const duration = ((performance.now() - start)/1000).toFixed(2);
+        appendLog('Envoi terminé en', duration, 's');
+      } catch (err) {
+        appendLog('Erreur pendant envoi:', err);
+      }
+    });
+
+    window.addEventListener('beforeunload', async () => {
+      try { if (port) await port.close(); } catch(e){}
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BitaxeGotchi — OTA Uploader</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; margin: 24px; color:#111 }
+    h1 { font-size: 1.4rem; margin-bottom: 8px }
+    label { display:block; margin-top:12px }
+    input[type="text"], input[type="file"] { width: 100%; padding:8px; box-sizing:border-box }
+    button { margin-top:12px; padding:8px 12px; cursor:pointer }
+    progress { width:100%; height:18px; margin-top:8px }
+    pre { background:#f6f6f8; padding:12px; border-radius:6px; overflow:auto }
+    .warn { color: #7a2a00; background:#fff6f4; padding:8px; border-radius:6px; margin-top:12px }
+  </style>
+</head>
+<body>
+  <h1>BitaxeGotchi — OTA Web Uploader</h1>
+
+  <p>Utilisez cette page pour envoyer un fichier .bin via HTTP POST vers un device ESP qui propose un endpoint OTA (ex: /update). Assurez-vous que votre appareil est sur le même réseau et expose l'endpoint d'upload.</p>
+
+  <label>Adresse IP du device (ex: 192.168.4.1)
+    <input id="deviceIp" type="text" placeholder="http://192.168.4.1" value="http://">
+  </label>
+
+  <label>Fichier .bin
+    <input id="fileInput" type="file" accept=".bin">
+  </label>
+
+  <label>Chemin d'upload (par défaut /update)
+    <input id="uploadPath" type="text" value="/update">
+  </label>
+
+  <button id="startBtn">Démarrer l'upload</button>
+
+  <div id="status" style="margin-top:12px"></div>
+  <progress id="progress" value="0" max="100" style="display:none"></progress>
+
+  <div class="warn">
+    Attention : le firmware cible doit accepter un POST multipart/form-data. Cette page n'ajoute pas d'authentification — si votre endpoint attend un token ou mot de passe, il faut l'ajouter côté serveur ou modifier ce client pour inclure en-têtes.
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const fileInput = document.getElementById('fileInput');
+    const deviceIp = document.getElementById('deviceIp');
+    const uploadPath = document.getElementById('uploadPath');
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+
+    startBtn.addEventListener('click', () => {
+      status.textContent = '';
+      const file = fileInput.files[0];
+      if(!file) { status.textContent = 'Choisissez un fichier .bin'; return; }
+      let base = deviceIp.value.trim();
+      if(!base) { status.textContent = 'Renseignez l'adresse du device'; return; }
+      let path = uploadPath.value || '/update';
+      // normalize
+      if(!/^https?:\/\//.test(base)) base = 'http://' + base;
+      if(base.endsWith('/')) base = base.slice(0, -1);
+      if(!path.startsWith('/')) path = '/' + path;
+      const url = base + path;
+
+      // Use XMLHttpRequest to get upload progress
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          const percent = Math.round((evt.loaded / evt.total) * 100);
+          progress.style.display = 'block';
+          progress.value = percent;
+          status.textContent = `Uploading: ${percent}% (${Math.round(evt.loaded/1024)} KB / ${Math.round(evt.total/1024)} KB)`;
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          status.textContent = 'Upload terminé — vérifiez le device (redémarrage ou logs). Réponse serveur: ' + xhr.status + ' ' + xhr.responseText;
+        } else {
+          status.textContent = 'Erreur serveur: ' + xhr.status + ' — ' + xhr.responseText;
+        }
+        progress.style.display = 'none';
+      };
+
+      xhr.onerror = () => {
+        status.textContent = 'Erreur réseau pendant l'upload. Vérifiez la connectivité au device.';
+        progress.style.display = 'none';
+      };
+
+      const form = new FormData();
+      // field name "file" is common (ESPAsyncWebServer / ArduinoOTA examples accept "update" or "file" depending on impl)
+      form.append('file', file, file.name);
+
+      // Si votre endpoint attend un champ précis (ex: "update"), adaptez ci‑dessous:
+      // form.append('update', file, file.name);
+
+      status.textContent = 'Démarrage de l'upload vers ' + url;
+      xhr.send(form);
+    });
+  </script>
+</body>
+</html>
