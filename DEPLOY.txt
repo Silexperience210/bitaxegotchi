@@ -1,0 +1,42 @@
+STRUCTURE DU PROJET:
+====================
+
+ton-repo/
+├── index.html          (Page principale - déjà créée)
+├── manifest.json       (Config ESP Web Tools - déjà créée)
+├── bootloader.bin      (TON FICHIER - à ajouter)
+├── partitions.bin      (TON FICHIER - à ajouter)
+├── boot_app0.bin       (TON FICHIER - à ajouter)
+└── firmware.bin        (TON FICHIER - à ajouter)
+
+
+ÉTAPES DE DÉPLOIEMENT:
+======================
+
+1. Crée un nouveau repo GitHub
+
+2. Upload TOUS ces fichiers à la racine:
+   - index.html
+   - manifest.json
+   - bootloader.bin (tes binaires)
+   - partitions.bin (tes binaires)
+   - boot_app0.bin (tes binaires)
+   - firmware.bin (tes binaires)
+
+3. Active GitHub Pages:
+   - Settings → Pages
+   - Source: "Deploy from a branch"
+   - Branch: "main" + "/ (root)"
+   - Save
+
+4. Attends 1-2 minutes
+
+5. Ta page sera accessible à:
+   https://TON-USERNAME.github.io/TON-REPO/
+
+
+IMPORTANT:
+==========
+- Les fichiers .bin doivent être à la racine (même niveau que index.html)
+- Les noms des fichiers .bin doivent correspondre exactement au manifest.json
+- Si tes fichiers .bin ont d'autres noms, modifie le manifest.json

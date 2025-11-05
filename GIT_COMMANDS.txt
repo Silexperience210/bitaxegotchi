@@ -1,0 +1,45 @@
+COMMANDES GIT RAPIDES
+=====================
+
+1. INITIALISER LE REPO LOCAL:
+   cd ton-dossier
+   git init
+   git add .
+   git commit -m "BitPet initial commit"
+
+2. LIER À GITHUB:
+   git remote add origin https://github.com/TON-USERNAME/TON-REPO.git
+   git branch -M main
+   git push -u origin main
+
+3. ACTIVER GITHUB PAGES:
+   - Va sur ton repo GitHub
+   - Settings → Pages
+   - Source: Deploy from a branch
+   - Branch: main
+   - Folder: / (root)
+   - Save
+
+4. TESTER:
+   Attends 1-2 minutes puis va sur:
+   https://TON-USERNAME.github.io/TON-REPO/
+
+
+METTRE À JOUR LES BINAIRES:
+============================
+   git add *.bin
+   git commit -m "Update firmware"
+   git push
+
+   La page se met à jour automatiquement après 1-2 min
+
+
+STRUCTURE FINALE:
+=================
+ton-repo/
+├── index.html       ← Page web BitPet
+├── manifest.json    ← Config flashage
+├── bootloader.bin   ← Tes binaires
+├── partitions.bin   ← Tes binaires
+├── boot_app0.bin    ← Tes binaires
+└── firmware.bin     ← Tes binaires

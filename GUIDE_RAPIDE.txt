@@ -1,0 +1,69 @@
+🎮 BITPET - GUIDE RAPIDE
+========================
+
+📦 FICHIERS CRÉÉS:
+------------------
+✅ index.html       - Ta page web BitPet (thème gaming)
+✅ manifest.json    - Configuration du flashage
+✅ .gitignore       - Fichiers à ignorer par Git
+✅ check.sh         - Script pour vérifier ta structure
+✅ DEPLOY.txt       - Guide de déploiement détaillé
+✅ GIT_COMMANDS.txt - Commandes Git essentielles
+
+
+🚀 DÉPLOIEMENT EN 5 ÉTAPES:
+----------------------------
+
+ÉTAPE 1: Prépare tes binaires
+   └─ Récupère tes 4 fichiers .bin depuis ta compilation:
+      • bootloader.bin
+      • partitions.bin
+      • boot_app0.bin
+      • firmware.bin
+
+ÉTAPE 2: Crée ton repo GitHub
+   └─ Va sur github.com
+   └─ New repository → nomme-le (ex: bitpet-firmware)
+   └─ Public
+   └─ Ne coche rien d'autre
+   └─ Create repository
+
+ÉTAPE 3: Upload les fichiers
+   └─ Sur la page du nouveau repo, clique "uploading an existing file"
+   └─ Drag & drop TOUS les fichiers téléchargés + tes 4 .bin
+   └─ Commit changes
+
+ÉTAPE 4: Active GitHub Pages
+   └─ Settings (onglet en haut)
+   └─ Pages (menu gauche)
+   └─ Source: "Deploy from a branch"
+   └─ Branch: "main" + "/ (root)"
+   └─ Save
+
+ÉTAPE 5: Accède à ta page
+   └─ Attends 1-2 minutes
+   └─ Va sur: https://TON-USERNAME.github.io/TON-REPO/
+   └─ Ta page BitPet est live ! 🎉
+
+
+⚠️ POINTS IMPORTANTS:
+---------------------
+• Les 4 fichiers .bin DOIVENT être à la racine (même niveau que index.html)
+• Si tes .bin ont d'autres noms, édite manifest.json
+• Utilise Chrome/Edge/Opera pour flasher (pas Firefox/Safari)
+• La page se met à jour auto après chaque push
+
+
+🔧 TESTER LOCALEMENT:
+---------------------
+   python3 -m http.server 8000
+   └─ Va sur: http://localhost:8000
+
+
+🐛 SI ÇA NE MARCHE PAS:
+-----------------------
+1. Lance check.sh pour vérifier la structure
+2. Vérifie que GitHub Pages est sur "main" + "/ (root)"
+3. Attends 5 minutes (parfois c'est lent)
+4. Vérifie l'URL: https://USERNAME.github.io/REPO/ (pas .com!)
+5. Vérifie la console navigateur (F12) pour les erreurs
