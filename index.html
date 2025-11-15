@@ -130,6 +130,11 @@
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(255, 0, 0, 0.3);
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .creature-display::after {
@@ -148,15 +153,384 @@
             100% { left: 100%; }
         }
 
-        .creature {
-            font-size: 140px;
-            animation: pulse 2s ease-in-out infinite;
-            filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.5));
+        /* Bitcoin Character Container */
+        .creature-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            z-index: 1;
         }
 
-        @keyframes pulse {
+        /* Bitcoin Character */
+        .bitcoin-character {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+
+        /* Bitcoin coin body */
+        .bitcoin-body {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(135deg, #f7931a 0%, #ff9500 50%, #f7931a 100%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow:
+                0 0 30px rgba(247, 147, 26, 0.6),
+                inset -10px -10px 20px rgba(0, 0, 0, 0.3),
+                inset 10px 10px 20px rgba(255, 255, 255, 0.3);
+            border: 4px solid #ff9500;
+        }
+
+        /* Bitcoin symbol */
+        .bitcoin-symbol {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-family: Arial, sans-serif;
+        }
+
+        /* Eyes */
+        .eyes {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+            z-index: 10;
+        }
+
+        .eye {
+            width: 28px;
+            height: 28px;
+            background: white;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .pupil {
+            width: 14px;
+            height: 14px;
+            background: #000;
+            border-radius: 50%;
+            position: absolute;
+            top: 7px;
+            left: 7px;
+            transition: all 0.3s ease;
+        }
+
+        /* Mouth */
+        .mouth {
+            position: absolute;
+            bottom: 35%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 30px;
+            border: 4px solid #fff;
+            border-top: none;
+            border-radius: 0 0 60px 60px;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        /* Arms */
+        .arms {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .arm {
+            position: absolute;
+            width: 50px;
+            height: 15px;
+            background: linear-gradient(135deg, #f7931a, #ff9500);
+            border-radius: 20px;
+            top: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .arm-left {
+            left: -15px;
+            transform: rotate(-20deg);
+            transform-origin: right center;
+        }
+
+        .arm-right {
+            right: -15px;
+            transform: rotate(20deg);
+            transform-origin: left center;
+        }
+
+        /* Legs */
+        .legs {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 30px;
+            z-index: 1;
+        }
+
+        .leg {
+            width: 20px;
+            height: 35px;
+            background: linear-gradient(180deg, #f7931a, #ff9500);
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Animation States */
+
+        /* Idle State */
+        .state-idle .bitcoin-character {
+            animation: idle-float 3s ease-in-out infinite;
+        }
+
+        @keyframes idle-float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .state-idle .arm-left {
+            animation: idle-arm-left 2s ease-in-out infinite;
+        }
+
+        .state-idle .arm-right {
+            animation: idle-arm-right 2s ease-in-out infinite;
+        }
+
+        @keyframes idle-arm-left {
+            0%, 100% { transform: rotate(-20deg); }
+            50% { transform: rotate(-30deg); }
+        }
+
+        @keyframes idle-arm-right {
+            0%, 100% { transform: rotate(20deg); }
+            50% { transform: rotate(30deg); }
+        }
+
+        /* Mining State */
+        .state-mining .bitcoin-character {
+            animation: mining-shake 0.5s ease-in-out infinite;
+        }
+
+        @keyframes mining-shake {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-3px) rotate(-2deg); }
+            75% { transform: translateX(3px) rotate(2deg); }
+        }
+
+        .state-mining .arm-left {
+            animation: mining-arm-left 0.6s ease-in-out infinite;
+        }
+
+        .state-mining .arm-right {
+            animation: mining-arm-right 0.6s ease-in-out infinite;
+        }
+
+        @keyframes mining-arm-left {
+            0%, 100% { transform: rotate(-45deg); }
+            50% { transform: rotate(-15deg); }
+        }
+
+        @keyframes mining-arm-right {
+            0%, 100% { transform: rotate(45deg); }
+            50% { transform: rotate(15deg); }
+        }
+
+        .state-mining .bitcoin-body {
+            box-shadow:
+                0 0 50px rgba(247, 147, 26, 0.9),
+                inset -10px -10px 20px rgba(0, 0, 0, 0.3),
+                inset 10px 10px 20px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Happy State */
+        .state-happy .bitcoin-character {
+            animation: happy-bounce 0.6s ease-in-out infinite;
+        }
+
+        @keyframes happy-bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.05); }
+        }
+
+        .state-happy .mouth {
+            width: 70px;
+            height: 35px;
+            border-radius: 0 0 70px 70px;
+        }
+
+        .state-happy .arm-left {
+            animation: happy-arm-wave 0.5s ease-in-out infinite;
+        }
+
+        .state-happy .arm-right {
+            animation: happy-arm-wave 0.5s ease-in-out infinite;
+            animation-delay: 0.25s;
+        }
+
+        @keyframes happy-arm-wave {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            50% { transform: rotate(-45deg) translateY(-10px); }
+        }
+
+        /* Excited State */
+        .state-excited .bitcoin-character {
+            animation: excited-jump 0.8s ease-in-out infinite;
+        }
+
+        @keyframes excited-jump {
+            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+            25% { transform: translateY(-30px) rotate(-10deg) scale(1.1); }
+            50% { transform: translateY(-40px) rotate(0deg) scale(1.15); }
+            75% { transform: translateY(-30px) rotate(10deg) scale(1.1); }
+        }
+
+        .state-excited .bitcoin-body {
+            animation: excited-glow 0.4s ease-in-out infinite;
+        }
+
+        @keyframes excited-glow {
+            0%, 100% {
+                box-shadow:
+                    0 0 40px rgba(247, 147, 26, 0.8),
+                    inset -10px -10px 20px rgba(0, 0, 0, 0.3),
+                    inset 10px 10px 20px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                box-shadow:
+                    0 0 80px rgba(247, 147, 26, 1),
+                    0 0 120px rgba(255, 149, 0, 0.6),
+                    inset -10px -10px 20px rgba(0, 0, 0, 0.3),
+                    inset 10px 10px 20px rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        .state-excited .eyes {
+            animation: eyes-sparkle 0.3s ease-in-out infinite;
+        }
+
+        @keyframes eyes-sparkle {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.2); }
+        }
+
+        /* Tired State */
+        .state-tired .bitcoin-character {
+            animation: tired-sway 4s ease-in-out infinite;
+        }
+
+        @keyframes tired-sway {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        .state-tired .eye {
+            height: 8px;
+            border-radius: 0;
+        }
+
+        .state-tired .pupil {
+            display: none;
+        }
+
+        .state-tired .mouth {
+            width: 40px;
+            height: 15px;
+            border-radius: 0 0 40px 40px;
+        }
+
+        .state-tired .arm-left,
+        .state-tired .arm-right {
+            animation: tired-arm-drop 3s ease-in-out infinite;
+        }
+
+        @keyframes tired-arm-drop {
+            0%, 100% { transform: rotate(45deg); }
+            50% { transform: rotate(60deg); }
+        }
+
+        /* Sleeping State */
+        .state-sleeping .bitcoin-character {
+            animation: sleeping-breathe 3s ease-in-out infinite;
+        }
+
+        @keyframes sleeping-breathe {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            50% { transform: scale(0.98); }
+        }
+
+        .state-sleeping .eye {
+            height: 4px;
+            border-radius: 0;
+        }
+
+        .state-sleeping .pupil {
+            display: none;
+        }
+
+        .state-sleeping .mouth {
+            width: 30px;
+            height: 10px;
+            border-radius: 15px;
+            border: 3px solid #fff;
+        }
+
+        /* Energy particles for mining */
+        .energy-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .energy-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #f7931a;
+            border-radius: 50%;
+            opacity: 0;
+            box-shadow: 0 0 10px #f7931a;
+        }
+
+        .state-mining .energy-particle,
+        .state-excited .energy-particle {
+            animation: particle-float 2s ease-out infinite;
+        }
+
+        @keyframes particle-float {
+            0% {
+                transform: translate(0, 0) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .creature {
+            display: none; /* Hide the old emoji */
         }
 
         .creature-name {
@@ -387,9 +761,45 @@
 
         <div class="main-card">
             <div class="card-content">
-                <div class="creature-display">
-                    <div class="creature">🦖</div>
-                    <div class="creature-name">Feed Me Shares!</div>
+                <div class="creature-display state-idle" id="creatureDisplay">
+                    <div class="creature-container">
+                        <div class="bitcoin-character">
+                            <!-- Bitcoin Body -->
+                            <div class="bitcoin-body">
+                                <div class="bitcoin-symbol">₿</div>
+                            </div>
+
+                            <!-- Eyes -->
+                            <div class="eyes">
+                                <div class="eye">
+                                    <div class="pupil"></div>
+                                </div>
+                                <div class="eye">
+                                    <div class="pupil"></div>
+                                </div>
+                            </div>
+
+                            <!-- Mouth -->
+                            <div class="mouth"></div>
+
+                            <!-- Arms -->
+                            <div class="arms">
+                                <div class="arm arm-left"></div>
+                                <div class="arm arm-right"></div>
+                            </div>
+
+                            <!-- Legs -->
+                            <div class="legs">
+                                <div class="leg"></div>
+                                <div class="leg"></div>
+                            </div>
+
+                            <!-- Energy Particles -->
+                            <div class="energy-particles" id="energyParticles"></div>
+                        </div>
+                    </div>
+                    <div class="creature-name" id="creatureName">BitCoin-Chan</div>
+                    <div class="creature" style="display: none;">🦖</div>
                 </div>
 
                 <div class="info-grid">
@@ -472,6 +882,130 @@
             particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
             particlesContainer.appendChild(particle);
         }
+
+        // Bitcoin Character State Manager
+        class BitcoinCharacter {
+            constructor() {
+                this.display = document.getElementById('creatureDisplay');
+                this.nameElement = document.getElementById('creatureName');
+                this.energyParticles = document.getElementById('energyParticles');
+                this.currentState = 'idle';
+                this.states = ['idle', 'mining', 'happy', 'excited', 'tired', 'sleeping'];
+                this.stateNames = {
+                    'idle': 'BitCoin-Chan 💤',
+                    'mining': 'MINING! ⚡',
+                    'happy': 'Happy BitCoin! 😊',
+                    'excited': 'SUPER EXCITED! 🎉',
+                    'tired': 'Tired... 😴',
+                    'sleeping': 'Sleeping... 💤'
+                };
+
+                this.initEnergyParticles();
+                this.startStateRotation();
+            }
+
+            initEnergyParticles() {
+                // Create energy particles
+                for (let i = 0; i < 8; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'energy-particle';
+
+                    // Random direction
+                    const angle = (Math.PI * 2 * i) / 8;
+                    const distance = 100;
+                    const tx = Math.cos(angle) * distance;
+                    const ty = Math.sin(angle) * distance;
+
+                    particle.style.setProperty('--tx', tx + 'px');
+                    particle.style.setProperty('--ty', ty + 'px');
+                    particle.style.animationDelay = (i * 0.25) + 's';
+
+                    this.energyParticles.appendChild(particle);
+                }
+            }
+
+            setState(state) {
+                if (this.states.includes(state)) {
+                    // Remove all state classes
+                    this.states.forEach(s => {
+                        this.display.classList.remove(`state-${s}`);
+                    });
+
+                    // Add new state class
+                    this.display.classList.add(`state-${state}`);
+                    this.currentState = state;
+
+                    // Update name
+                    this.nameElement.textContent = this.stateNames[state];
+
+                    console.log(`BitCoin-Chan state: ${state}`);
+                }
+            }
+
+            startStateRotation() {
+                // Demo mode: rotate through states
+                let stateIndex = 0;
+
+                // Change state every 4 seconds for demo
+                setInterval(() => {
+                    stateIndex = (stateIndex + 1) % this.states.length;
+                    this.setState(this.states[stateIndex]);
+                }, 4000);
+            }
+
+            // Method to set state based on mining activity (for future integration)
+            updateFromMiningStats(hashrate, shares, temperature) {
+                if (hashrate === 0) {
+                    this.setState('sleeping');
+                } else if (hashrate < 100) {
+                    this.setState('tired');
+                } else if (hashrate > 500) {
+                    this.setState('excited');
+                } else if (shares % 10 === 0 && shares > 0) {
+                    this.setState('happy');
+                } else {
+                    this.setState('mining');
+                }
+            }
+        }
+
+        // Initialize Bitcoin Character
+        const bitcoinChar = new BitcoinCharacter();
+
+        // Example: You can call bitcoinChar.setState('mining') to manually set state
+        // Or bitcoinChar.updateFromMiningStats(hashrate, shares, temp) with real data
+
+        // Eye tracking (follows cursor)
+        document.addEventListener('mousemove', (e) => {
+            const eyes = document.querySelectorAll('.pupil');
+            const rect = document.querySelector('.bitcoin-character').getBoundingClientRect();
+            const eyeCenterX = rect.left + rect.width / 2;
+            const eyeCenterY = rect.top + rect.height / 2;
+
+            eyes.forEach(pupil => {
+                const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
+                const distance = Math.min(7, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 50);
+
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+
+                pupil.style.transform = `translate(${x}px, ${y}px)`;
+            });
+        });
+
+        // Click interaction
+        document.querySelector('.creature-container').addEventListener('click', () => {
+            // Temporarily show excited state on click
+            const previousState = bitcoinChar.currentState;
+            bitcoinChar.setState('excited');
+
+            setTimeout(() => {
+                // Return to previous state after 2 seconds
+                if (bitcoinChar.currentState === 'excited') {
+                    bitcoinChar.setState(previousState);
+                }
+            }, 2000);
+        });
     </script>
 </body>
 </html>
