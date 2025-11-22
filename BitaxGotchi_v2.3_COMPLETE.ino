@@ -38,6 +38,14 @@
 
 #define AP_SSID "BitaxGotchi-Setup"
 
+// Performance tuning constants
+#define HTML_BUFFER_SIZE 8192
+#define HTTP_TIMEOUT_MS 3000
+#define SAVE_INTERVAL_MS 300000  // 5 minutes
+#define REDRAW_INTERVAL_MS 30000  // 30 seconds
+#define MAIN_LOOP_DELAY_MS 50
+#define HASHRATE_CHANGE_THRESHOLD 0.1
+
 DNSServer dnsServer;
 WebServer webServer(80);
 Preferences prefs;
@@ -408,7 +416,7 @@ String getWebStyle() {
 String getWebHTML() {
   // Pre-allocate String to reduce memory fragmentation
   String html;
-  html.reserve(8192);  // Reserve enough space for the HTML
+  html.reserve(HTML_BUFFER_SIZE);  // Reserve enough space for the HTML
   
   html = "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>";
   html += "<title>BitaxGotchi Miner Dashboard</title>";
@@ -720,7 +728,7 @@ void updateBitaxeStats() {
     Serial.printf("[%d] GET %s\n", i+1, url.c_str());
     
     http.begin(url);
-    http.setTimeout(3000);  // Reduced from 5000ms to 3000ms for faster failure detection
+    http.setTimeout(HTTP_TIMEOUT_MS);  // Reduced timeout for faster failure detection
     
     int code = http.GET();
     Serial.printf("[%d] HTTP %d\n", i+1, code);
@@ -882,7 +890,7 @@ void updatePetStats() {
   }
   
   // Sauvegarder périodiquement seulement si les stats ont changé
-  if(statsDirty && (now - lastSave >= 300000)) {  // 5 minutes
+  if(statsDirty && (now - lastSave >= SAVE_INTERVAL_MS)) {  // Every 5 minutes
     lastSave = now;
     savePetState();
   }
@@ -1381,7 +1389,7 @@ bool hasDataChanged() {
        myPet.energy != prevEnergy ||
        myPet.state != prevState ||
        totalShares != prevTotalShares ||
-       abs(totalHash - prevTotalHashrate) > 0.1) {
+       abs(totalHash - prevTotalHashrate) > HASHRATE_CHANGE_THRESHOLD) {
       
       // Update tracked values
       prevHunger = myPet.hunger;
@@ -1430,7 +1438,7 @@ void loop() {
     // Optimized redrawing - only redraw when data actually changes
     bool screenChanged = (currentScreen != lastScreen);
     bool dataChanged = hasDataChanged();
-    bool timeToRedraw = (now - lastScreenRedraw >= 30000); // Reduced frequency to 30 seconds when no changes
+    bool timeToRedraw = (now - lastScreenRedraw >= REDRAW_INTERVAL_MS); // Reduced frequency when no changes
     
     if(needsRedraw || screenChanged || (dataChanged && timeToRedraw)) {
       // Affichage selon l'écran
@@ -1448,5 +1456,5 @@ void loop() {
     }
   }
   
-  delay(50);  // Reduced from 100ms to 50ms for better responsiveness
+  delay(MAIN_LOOP_DELAY_MS);  // Reduced delay for better responsiveness
 }
