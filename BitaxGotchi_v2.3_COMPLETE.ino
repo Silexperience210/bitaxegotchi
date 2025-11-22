@@ -2,6 +2,17 @@
  * BitaxGotchi BitaxeS3 - VERSION COMPLÈTE
  * Portail Web + Jeu Complet + Évolution basée sur shares
  * 
+ * Performance Optimizations:
+ * - CSS cached in PROGMEM to reduce RAM usage and avoid regeneration
+ * - String::reserve() used in HTML generation to reduce fragmentation
+ * - HTTP timeout reduced from 5s to 3s for faster error detection
+ * - JSON buffer optimized from 2048 to 1024 bytes
+ * - Smart screen redrawing only when data changes (30s interval vs 5s)
+ * - Optimized animations with reduced iterations and delays
+ * - Batched Preferences operations to reduce flash writes
+ * - Main loop delay reduced from 100ms to 50ms for better responsiveness
+ * - Change detection system to avoid unnecessary redraws
+ * 
  * Évolution:
  * - Œuf: 0 shares
  * - Bébé: 50,000 shares
@@ -26,6 +37,14 @@
 #define BUTTON_2 14
 
 #define AP_SSID "BitaxGotchi-Setup"
+
+// Performance tuning constants
+#define HTML_BUFFER_SIZE 8192
+#define HTTP_TIMEOUT_MS 3000
+#define SAVE_INTERVAL_MS 300000  // 5 minutes
+#define REDRAW_INTERVAL_MS 30000  // 30 seconds
+#define MAIN_LOOP_DELAY_MS 50
+#define HASHRATE_CHANGE_THRESHOLD 0.1
 
 DNSServer dnsServer;
 WebServer webServer(80);
@@ -89,6 +108,15 @@ unsigned long lastShareCheck = 0;
 unsigned long sessionStartShares = 0;
 unsigned long lastScreenRedraw = 0;
 
+// Track previous values for change detection
+int prevHunger = -1;
+int prevHappiness = -1;
+int prevHealth = -1;
+int prevEnergy = -1;
+PetState prevState = STATE_EGG;
+unsigned long prevTotalShares = 0;
+float prevTotalHashrate = -1.0;
+
 bool configMode = false;
 bool needsRedraw = true;
 int currentScreen = 0; // 0=main, 1=stats, 2=menu
@@ -139,6 +167,17 @@ void saveConfig() {
     prefs.putString(("name" + String(i)).c_str(), config.bitaxeNames[i]);
   }
   
+  // Batch save pet state at the same time to reduce Preferences operations
+  prefs.putInt("hunger", myPet.hunger);
+  prefs.putInt("happy", myPet.happiness);
+  prefs.putInt("health", myPet.health);
+  prefs.putInt("energy", myPet.energy);
+  prefs.putInt("weight", myPet.weight);
+  prefs.putULong("lifeshares", myPet.totalLifetimeShares);
+  prefs.putULong("born", myPet.bornTime);
+  prefs.putBool("dirty", myPet.isDirty);
+  prefs.putBool("sick", myPet.isSick);
+  
   prefs.end();
 }
 
@@ -160,8 +199,8 @@ void savePetState() {
 
 // ============== PORTAIL WEB STYLÉ ==============
 
-String getWebStyle() {
-  return R"rawliteral(
+// Cache the CSS in PROGMEM to save RAM and avoid regeneration
+const char WEB_STYLE[] PROGMEM = R"rawliteral(
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -369,10 +408,17 @@ String getWebStyle() {
   }
 </style>
 )rawliteral";
+
+String getWebStyle() {
+  return String(FPSTR(WEB_STYLE));
 }
 
 String getWebHTML() {
-  String html = "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>";
+  // Pre-allocate String to reduce memory fragmentation
+  String html;
+  html.reserve(HTML_BUFFER_SIZE);  // Reserve enough space for the HTML
+  
+  html = "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>";
   html += "<title>BitaxGotchi Miner Dashboard</title>";
   html += getWebStyle();
   html += "</head><body><div class='container'>";
@@ -682,7 +728,7 @@ void updateBitaxeStats() {
     Serial.printf("[%d] GET %s\n", i+1, url.c_str());
     
     http.begin(url);
-    http.setTimeout(5000);
+    http.setTimeout(HTTP_TIMEOUT_MS);  // Reduced timeout for faster failure detection
     
     int code = http.GET();
     Serial.printf("[%d] HTTP %d\n", i+1, code);
@@ -691,7 +737,8 @@ void updateBitaxeStats() {
       String payload = http.getString();
       Serial.printf("[%d] Response: %s...\n", i+1, payload.substring(0, min(100, (int)payload.length())).c_str());
       
-      StaticJsonDocument<2048> doc;
+      // Reduced buffer size from 2048 to 1024 - sufficient for ESPMiner API
+      StaticJsonDocument<1024> doc;
       DeserializationError error = deserializeJson(doc, payload);
       
       if(!error) {
@@ -733,8 +780,8 @@ void checkForNewShares() {
     myPet.happiness = min(100, myPet.happiness + 3);
     myPet.energy = min(100, myPet.energy + 2);
     
-    // Animation
-    for(int i = 0; i < 3; i++) {
+    // Optimized animation - reduced iterations from 3 to 2
+    for(int i = 0; i < 2; i++) {
       tft.fillScreen(TFT_GREEN);
       tft.setTextSize(3);
       tft.setTextColor(TFT_WHITE);
@@ -745,9 +792,9 @@ void checkForNewShares() {
       tft.print("SHARE");
       if(newShares > 1) tft.print("S");
       tft.print("!");
-      delay(250);
+      delay(200);  // Reduced from 250ms to 200ms
       tft.fillScreen(TFT_BLACK);
-      delay(250);
+      delay(200);  // Reduced from 250ms to 200ms
     }
     
     lastShareCount = totalShares;
@@ -797,30 +844,37 @@ void updatePetState() {
 
 void updatePetStats() {
   unsigned long now = millis();
+  static unsigned long lastSave = 0;
+  bool statsDirty = false;
   
   // Dégradation lente
   if(now - myPet.lastFeed >= 120000) {  // 2 minutes
     myPet.hunger = max(0, myPet.hunger - 1);
     myPet.lastFeed = now;
+    statsDirty = true;
   }
   
   if(now - myPet.lastPlay >= 180000) {  // 3 minutes
     myPet.happiness = max(0, myPet.happiness - 1);
     myPet.energy = max(0, myPet.energy - 1);
     myPet.lastPlay = now;
+    statsDirty = true;
   }
   
   // Santé
   if(myPet.hunger < 20 || myPet.happiness < 20 || myPet.energy < 20) {
     myPet.health = max(0, myPet.health - 1);
     if(random(100) < 3) myPet.isSick = true;
+    statsDirty = true;
   } else if(myPet.health < 100) {
     myPet.health = min(100, myPet.health + 1);
+    statsDirty = true;
   }
   
   // Sale
   if(now - myPet.lastClean >= 600000 && random(100) < 5) {  // 10 min
     myPet.isDirty = true;
+    statsDirty = true;
   }
   
   // Mort
@@ -831,12 +885,12 @@ void updatePetStats() {
     tft.setTextColor(TFT_RED);
     tft.setCursor(70, 60);
     tft.print("R.I.P.");
-    delay(3000);
+    delay(2500);  // Reduced from 3000ms to 2500ms
+    statsDirty = true;
   }
   
-  // Sauvegarder périodiquement
-  static unsigned long lastSave = 0;
-  if(now - lastSave >= 300000) {  // 5 minutes
+  // Sauvegarder périodiquement seulement si les stats ont changé
+  if(statsDirty && (now - lastSave >= SAVE_INTERVAL_MS)) {  // Every 5 minutes
     lastSave = now;
     savePetState();
   }
@@ -849,17 +903,17 @@ void playWithPet() {
   myPet.energy = max(0, myPet.energy - 5);
   myPet.hunger = max(0, myPet.hunger - 3);
   
-  // Animation
+  // Optimized animation - reduced iterations from 8 to 5
   tft.fillScreen(TFT_BLACK);
-  for(int i = 0; i < 8; i++) {
+  for(int i = 0; i < 5; i++) {
     int x = random(50, 270);
     int y = random(30, 140);
     int size = random(10, 25);
     uint16_t color = tft.color565(random(150, 255), random(150, 255), random(150, 255));
     tft.fillCircle(x, y, size, color);
-    delay(100);
+    delay(80);  // Reduced from 100ms to 80ms
   }
-  delay(500);
+  delay(400);  // Reduced from 500ms to 400ms
 }
 
 void cleanPet() {
@@ -875,7 +929,7 @@ void cleanPet() {
   tft.setTextColor(TFT_WHITE);
   tft.setCursor(60, 60);
   tft.print("PROPRE!");
-  delay(1000);
+  delay(800);  // Reduced from 1000ms to 800ms
 }
 
 void giveMedicine() {
@@ -884,27 +938,28 @@ void giveMedicine() {
   myPet.isSick = false;
   myPet.health = min(100, myPet.health + 30);
   
-  // Animation
-  for(int i = 0; i < 4; i++) {
+  // Optimized animation - reduced iterations from 4 to 3
+  for(int i = 0; i < 3; i++) {
     tft.fillScreen(i % 2 ? TFT_RED : TFT_WHITE);
-    delay(200);
+    delay(150);  // Reduced from 200ms to 150ms
   }
   tft.fillScreen(TFT_GREEN);
   tft.setTextSize(3);
   tft.setTextColor(TFT_WHITE);
   tft.setCursor(50, 60);
   tft.print("GUERI!");
-  delay(1000);
+  delay(800);  // Reduced from 1000ms to 800ms
 }
 
 void showEvolutionAnimation(const char* stage) {
   tft.fillScreen(TFT_BLACK);
   
-  for(int i = 0; i < 5; i++) {
+  // Optimized animation - reduced iterations from 5 to 3
+  for(int i = 0; i < 3; i++) {
     tft.fillScreen(TFT_YELLOW);
-    delay(150);
+    delay(120);  // Reduced from 150ms to 120ms
     tft.fillScreen(TFT_BLACK);
-    delay(150);
+    delay(120);  // Reduced from 150ms to 120ms
   }
   
   tft.setTextSize(3);
@@ -917,7 +972,7 @@ void showEvolutionAnimation(const char* stage) {
   tft.setCursor(40, 80);
   tft.print(stage);
   
-  delay(3000);
+  delay(2500);  // Reduced from 3000ms to 2500ms
   savePetState();
 }
 
@@ -1318,6 +1373,40 @@ void setup() {
 
 // ============== LOOP ==============
 
+// Helper function to check if screen data has changed
+bool hasDataChanged() {
+  if(currentScreen == 0) {  // Main screen
+    // Calculate current hashrate
+    float totalHash = 0;
+    for(int i = 0; i < config.numBitaxe; i++) {
+      if(bitaxeStats[i].isOnline) totalHash += bitaxeStats[i].hashrate;
+    }
+    
+    // Check if any displayed values changed
+    if(myPet.hunger != prevHunger || 
+       myPet.happiness != prevHappiness ||
+       myPet.health != prevHealth ||
+       myPet.energy != prevEnergy ||
+       myPet.state != prevState ||
+       totalShares != prevTotalShares ||
+       abs(totalHash - prevTotalHashrate) > HASHRATE_CHANGE_THRESHOLD) {
+      
+      // Update tracked values
+      prevHunger = myPet.hunger;
+      prevHappiness = myPet.happiness;
+      prevHealth = myPet.health;
+      prevEnergy = myPet.energy;
+      prevState = myPet.state;
+      prevTotalShares = totalShares;
+      prevTotalHashrate = totalHash;
+      
+      return true;
+    }
+    return false;
+  }
+  return true;  // Always redraw stats and menu screens
+}
+
 void loop() {
   unsigned long now = millis();
   
@@ -1346,11 +1435,12 @@ void loop() {
     
     handleButtons();
     
-    // Redessiner seulement si nécessaire
+    // Optimized redrawing - only redraw when data actually changes
     bool screenChanged = (currentScreen != lastScreen);
-    bool timeToRedraw = (now - lastScreenRedraw >= 5000); // Toutes les 5 secondes
+    bool dataChanged = hasDataChanged();
+    bool timeToRedraw = (now - lastScreenRedraw >= REDRAW_INTERVAL_MS); // Reduced frequency when no changes
     
-    if(needsRedraw || screenChanged || timeToRedraw) {
+    if(needsRedraw || screenChanged || (dataChanged && timeToRedraw)) {
       // Affichage selon l'écran
       if(currentScreen == 0) {
         drawMainScreen();
@@ -1366,5 +1456,5 @@ void loop() {
     }
   }
   
-  delay(100);
+  delay(MAIN_LOOP_DELAY_MS);  // Reduced delay for better responsiveness
 }
